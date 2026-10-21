@@ -251,3 +251,320 @@ La base ya contiene Dockerfiles y Compose únicamente para facilitar una referen
 
 Para una prueba de cinco horas recomiendo la modalidad de mejora: permite evaluar decisiones de seguridad, eficiencia, CI/CD, IaC, observabilidad y recuperación sin consumir la mayor parte del tiempo en configuración básica.
 
+# Mejoras Implementadas para la Prueba DevOps
+
+> Esta sección está diseñada para agregarse al final del README existente sin modificar el contenido original de la aplicación.
+
+## Contenedores y Ejecución Local
+
+Se realizó una auditoría de los Dockerfiles y de Docker Compose con el objetivo de mejorar la seguridad, mantenibilidad y reproducibilidad de la solución.
+
+### Backend
+
+- Compilación multi-stage.
+- Uso de imagen JRE para ejecución.
+- Ejecución con usuario sin privilegios (`appuser`).
+- Health Check basado en Spring Boot Actuator.
+- Optimización de caché Maven mediante `dependency:go-offline`.
+- Configuración preparada para manejo adecuado de señales.
+
+### Frontend
+
+- Compilación multi-stage.
+- Instalación reproducible mediante `npm ci`.
+- Ejecución utilizando `nginx-unprivileged`.
+- Health Check incorporado.
+- Reducción de superficie de ataque copiando únicamente artefactos compilados.
+
+### Docker Compose
+
+Mejoras implementadas:
+
+- Variables de entorno externalizadas.
+- Archivo `.env.example` agregado.
+- Red dedicada para los servicios.
+- Rotación básica de logs.
+- Dependencias condicionadas al estado de salud de los servicios.
+- Persistencia para PostgreSQL mediante volumen dedicado.
+- Eliminación de contraseñas embebidas en la configuración.
+
+---
+
+## Integración Continua
+
+Se implementó un pipeline de GitHub Actions ubicado en:
+
+```text
+.github/workflows/ci.yml
+```
+
+### Validaciones automatizadas
+
+#### Backend
+
+```bash
+mvn test
+```
+
+#### Frontend
+
+```bash
+npm ci
+npm run build
+```
+
+#### Validación completa
+
+```bash
+./scripts/verify.sh
+```
+
+### Capacidades del Pipeline
+
+- Compilación del backend.
+- Ejecución de pruebas automatizadas.
+- Instalación reproducible del frontend.
+- Compilación Angular en modo producción.
+- Construcción de imágenes Docker.
+- Escaneo de seguridad mediante Trivy.
+- Uso de caché para Maven y npm.
+- Bloqueo del pipeline cuando una validación obligatoria falla.
+
+---
+
+## Infraestructura como Código
+
+Se incluye una propuesta base utilizando Terraform.
+
+```text
+terraform/
+├── main.tf
+├── variables.tf
+└── outputs.tf
+```
+
+### Componentes Propuestos
+
+- Azure Resource Group.
+- Azure Virtual Network.
+- Azure Subnet.
+- Azure Container Apps.
+- Azure PostgreSQL Flexible Server.
+- Azure Key Vault.
+
+---
+
+## Seguridad
+
+Documentación detallada disponible en:
+
+```text
+docs/security.md
+```
+
+### Cambios realizados
+
+- Eliminación de credenciales embebidas.
+- Uso de variables de entorno.
+- Separación entre configuración y código.
+- Ejecución con usuarios no privilegiados.
+- Propuesta de integración con GitHub Secrets.
+- Propuesta de integración con Azure Key Vault.
+
+### Riesgos identificados
+
+#### Riesgo 1: Secretos almacenados en repositorio
+
+Mitigación:
+
+- Variables de entorno.
+- GitHub Secrets.
+- Azure Key Vault.
+
+#### Riesgo 2: Dependencias vulnerables
+
+Durante la auditoría se detectaron vulnerabilidades reportadas por npm audit.
+
+Mitigación:
+
+- npm audit.
+- Dependabot.
+- Trivy.
+
+#### Riesgo 3: Ejecución como usuario root
+
+Mitigación:
+
+- Usuario dedicado para backend.
+- nginx-unprivileged para frontend.
+
+---
+
+## Observabilidad
+
+Documentación detallada disponible en:
+
+```text
+docs/observability.md
+```
+
+### Logs
+
+Se propone el uso de logs estructurados incluyendo:
+
+- Timestamp.
+- Nivel.
+- Endpoint.
+- Código HTTP.
+- Correlation ID.
+
+### Métricas
+
+Aplicación:
+
+- Requests por segundo.
+- Latencia.
+- Error Rate.
+- CPU.
+- Memoria.
+
+Base de datos:
+
+- Conexiones activas.
+- Tiempo de respuesta.
+- Queries por segundo.
+
+### SLI
+
+```text
+Solicitudes exitosas / Solicitudes totales
+```
+
+### SLO
+
+```text
+99.9% disponibilidad mensual
+95% de las solicitudes deben responder en menos de 500 ms
+```
+
+### Correlación
+
+Se propone el uso del encabezado:
+
+```text
+X-Correlation-ID
+```
+
+---
+
+## Respaldo y Recuperación
+
+Documentación detallada disponible en:
+
+```text
+runbooks/
+├── backup.md
+├── restore.md
+├── rollback.md
+└── incident.md
+```
+
+### RPO
+
+```text
+15 minutos
+```
+
+### RTO
+
+```text
+30 minutos
+```
+
+### Backup
+
+```bash
+pg_dump -U parking -d parking > parking_backup.sql
+```
+
+### Restore
+
+```bash
+psql -U parking -d parking < parking_backup.sql
+```
+
+### Rollback
+
+```bash
+docker compose down
+docker compose up -d --build
+```
+
+---
+
+## Gestión de Incidentes
+
+Escenario considerado:
+
+- Frontend disponible.
+- Parte de las solicitudes al backend fallan.
+- Incremento de latencia.
+- Crecimiento anormal de conexiones PostgreSQL.
+
+### Hipótesis consideradas
+
+- Fuga de conexiones.
+- Query lenta.
+- Configuración incorrecta de HikariCP.
+- Retries excesivos.
+
+### Acciones de contención
+
+- Verificación de métricas.
+- Identificación de la versión afectada.
+- Rollback controlado.
+- Validación mediante smoke tests.
+
+### Acciones preventivas
+
+- Alertas de latencia.
+- Alertas de conexiones PostgreSQL.
+- Canary deployments.
+- Pruebas de carga previas a producción.
+
+---
+
+## Evidencia de Validación
+
+Validaciones ejecutadas satisfactoriamente:
+
+- ✅ `mvn test`
+- ✅ `npm ci`
+- ✅ `npm run build`
+- ✅ `scripts/verify.sh`
+- ✅ Consola H2 operativa.
+- ✅ Endpoint `/actuator/health` operativo.
+- ✅ Ejecución local con Docker Compose.
+- ✅ Smoke test funcional.
+
+---
+
+## Documentación Adicional
+
+```text
+docs/
+├── security.md
+├── observability.md
+└── architecture.md
+
+runbooks/
+├── backup.md
+├── restore.md
+├── rollback.md
+└── incident.md
+
+terraform/
+├── main.tf
+├── variables.tf
+└── outputs.tf
+```
