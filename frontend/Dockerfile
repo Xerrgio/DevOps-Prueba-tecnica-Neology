@@ -8,7 +8,7 @@ RUN npm ci --no-audit --no-fund
 
 COPY . ./
 
-RUN npm run build
+RUN chmod +x node_modules/.bin/ng && npm run build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine
 
