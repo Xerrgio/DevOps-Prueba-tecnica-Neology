@@ -77,15 +77,3 @@ jobs:
           format: table
           ignore-unfixed: true
           exit-code: 0
-
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Trivy Scan
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: fs
-        severity: HIGH,CRITICAL
-        format: table
-        ignore-unfixed: true
-        exit-code: 0
