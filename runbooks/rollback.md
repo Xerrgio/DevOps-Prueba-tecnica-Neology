@@ -1,4 +1,4 @@
-Rollback de Aplicación
+Rollback
 Objetivo
 Restaurar rápidamente una versión estable después de un despliegue defectuoso.
 
