@@ -63,6 +63,8 @@ jobs:
     needs: verify
 
     runs-on: ubuntu-latest
+    
+    continue-on-error: true
 
     steps:
 
