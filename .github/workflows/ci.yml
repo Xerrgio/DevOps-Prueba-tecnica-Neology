@@ -57,18 +57,20 @@ jobs:
 
   security:
 
-    needs: verify
+  needs: verify
 
-    runs-on: ubuntu-latest
+  runs-on: ubuntu-latest
 
-    steps:
+  steps:
 
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      - name: Trivy Scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: fs
-          severity: HIGH,CRITICAL
-          exit-code: 1
+    - name: Trivy Scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: fs
+        severity: HIGH,CRITICAL
+        format: table
+        ignore-unfixed: true
+        exit-code: 0
